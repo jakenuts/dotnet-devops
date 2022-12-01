@@ -20,7 +20,10 @@ jobs:
         dotnet-version: 7.0.x
     - name: Restore dependencies
       run: dotnet restore DotNetDevops.sln
+      working-directory: src/
     - name: Build
       run: dotnet build --no-restore DotNetDevops.sln
+      working-directory: src/
     - name: Test
       run: dotnet test --no-build --verbosity normal DotNetDevops.sln
+      working-directory: src/
