@@ -1,0 +1,11 @@
+mode: Mainline
+branches:
+  feature:
+    tag: beta
+  main: {}
+  workflow-test:
+    regex: ^latest$
+  pull-request:
+    tag: pr
+ignore:
+  sha: []

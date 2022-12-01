@@ -16,11 +16,24 @@ jobs:
       run:
         working-directory: src/
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        # Avoid shallow clone for Nerdbank.GitVersioning
+        fetch-depth: 0
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 7.0.x
+    - uses: dotnet/nbgv@master
+        id: nbgv
+        with:
+          setAllVars: true
+          setCommonVars: true
+    - run: "echo 'SemVer2: ${{ steps.nbgv.outputs.SemVer2 }}'"
+    - name: Display SemVer
+      run: |
+        echo "SemVer: $GITVERSION_SEMVER"        
     - name: Restore dependencies
       run: dotnet restore     
     - name: Build
