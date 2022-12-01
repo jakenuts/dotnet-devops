@@ -29,7 +29,7 @@
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageId>gbase.$(AssemblyName)</PackageId>
+    <PackageId>gbase.dotnet-devops</PackageId>
     <PackageOutputPath>./nupkg</PackageOutputPath>
   </PropertyGroup>
 
