@@ -12,6 +12,8 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PACKAGE_PATH: .\Packages
     defaults:
       run:
         working-directory: src/
@@ -37,8 +39,16 @@ jobs:
     - name: Display SemVer
       run: |
         echo "SemVer: $GITVERSION_SEMVER"        
-        
+
     - name: Restore dependencies
-      run: dotnet restore     
-    - name: Build
-      run: dotnet build --no-restore    
+      run: dotnet restore 
+    
+    #- name: Build
+    #  run: dotnet build --configuration Release --no-restore
+
+    - name: Pack
+      run: dotnet pack -c Release --no-restore --output ${{env.PACKAGE_PATH}} -p:PackageVersion=${{ steps.nbgv.outputs.NuGetPackageVersion }}.${{ github.run_number }} -p:Version=${{ steps.nbgv.outputs.NuGetPackageVersion }}.${{ github.run_number }} -p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} -p:AssemblyFileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} -p:AssemblyInformationalVersion=${{ steps.nbgv.outputs.AssemblyInformationalVersion }} /p:NoPackageAnalysis=true
+
+    - name: Push to NuGet Gallery
+      run: dotnet nuget push ${{env.PACKAGE_PATH}}\*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      if: github.event_name == 'push'
