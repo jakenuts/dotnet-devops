@@ -1,7 +1,7 @@
 # dotnet-devops
  A dotnet global tool that lists projects and watches builds across an Azure Devops organization
 
- ![screenshot](./docs/screenshot.png)
+ ![screenshot](https://raw.githubusercontent.com/jakenuts/dotnet-devops/main/docs/screenshot.png)
 
  ## Installation
 

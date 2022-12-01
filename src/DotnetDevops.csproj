@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>devops</AssemblyName>
     <RootNamespace>devops</RootNamespace>
+    <VersionPrefix>1.0.1</VersionPrefix>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>devops</ToolCommandName>
     <Authors>James White</Authors>
@@ -25,6 +26,7 @@
     <PackageProjectUrl>https://github.com/jakenuts/dotnet-devops</PackageProjectUrl>
     <PackageTags>dotnet-tool</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
