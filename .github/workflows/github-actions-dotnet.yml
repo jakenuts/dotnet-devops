@@ -27,8 +27,7 @@ jobs:
         dotnet-version: 7.0.x
     
      # Install Nerdbank.GitVersioning
-    - uses: dotnet/nbgv@master
-        id: nbgv
+    - uses: dotnet/nbgv@master      
         with:
           setAllVars: true
           setCommonVars: true
