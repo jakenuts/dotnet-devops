@@ -28,13 +28,16 @@ jobs:
     
      # Install Nerdbank.GitVersioning
     - uses: dotnet/nbgv@master      
-        with:
-          setAllVars: true
-          setCommonVars: true
+      with:
+        setAllVars: true
+        setCommonVars: true
+
     - run: "echo 'SemVer2: ${{ steps.nbgv.outputs.SemVer2 }}'"
+
     - name: Display SemVer
       run: |
         echo "SemVer: $GITVERSION_SEMVER"        
+        
     - name: Restore dependencies
       run: dotnet restore     
     - name: Build
