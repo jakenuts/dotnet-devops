@@ -17,11 +17,12 @@ Example Url: 'https://mycompany.visualstudio.com/defaultcollection'
 
  ## Usage
 
- `devops init`    - sets the DevOps url and PAT to use [^1]
- `devops list`    - lists all builds
- `devops list -r` - lists recent builds
- `devops list -f` - lists failed builds
- `devops watch`   - polls for new builds and shows progress
+- `devops init`    - sets the DevOps url and PAT to use [^1]
+- `devops list`    - lists all builds
+- `devops list -r` - lists recent builds
+- `devops list -f` - lists failed builds
+- `devops watch`   - polls for new builds and shows progress
+
 
  [^1]: The PAT is stored unencrypted in the .dotnet-devops folder created in your user profile directory. No idea how to do this better
 
