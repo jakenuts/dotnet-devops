@@ -57,7 +57,7 @@ services.AddLogging(logging =>
 
 if (args.Length == 0)
 {
-    //args = new[] { "watch" };
+    args = new[] { "watch" };
 }
 
 var registrar = new DependencyInjectionRegistrar(services);
@@ -75,7 +75,6 @@ app.Configure(config =>
 });
 
 run:
-
 
 var exitCode = await app.RunAsync(args);
 

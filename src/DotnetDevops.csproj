@@ -20,6 +20,11 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageId>dotnet-devops</PackageId>
     <Description>A dotnet global tool that lists projects and watches builds across an Azure Devops organization</Description>
+    <RepositoryUrl>https://github.com/jakenuts/dotnet-devops.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/jakenuts/dotnet-devops</PackageProjectUrl>
+    <PackageTags>dotnet-tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -30,6 +35,13 @@
 
   <ItemGroup>
     <Content Include="tool-icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
