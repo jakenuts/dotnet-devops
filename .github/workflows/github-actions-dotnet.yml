@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      PACKAGE_PATH: src/nupkg
+      PACKAGE_PATH: ./nupkg
     defaults:
       run:
         working-directory: src/
@@ -43,8 +43,8 @@ jobs:
       run: dotnet build --configuration Release --no-restore -p:Version=${{env.GitBuildVersion}}
 
     - name: Pack
-      run: dotnet pack -c Release --no-restore -p:PackageVersion=${{env.NBGV_NuGetPackageVersion}} -p:Version=${{env.GitBuildVersion}}
+      run: dotnet pack -c Release --no-build --no-restore -p:PackageVersion=${{env.NBGV_NuGetPackageVersion}} -p:Version=${{env.GitBuildVersion}}
 
     - name: Push to NuGet Gallery
-      run: dotnet nuget push ${{env.PACKAGE_PATH}}\*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push ${{env.PACKAGE_PATH}}/*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
       if: github.event_name == 'push'
