@@ -33,7 +33,8 @@ jobs:
       id: nbgv
       uses: dotnet/nbgv@master      
       with:
-        setAllVars: true        
+        setAllVars: true
+        setCommonVars: true        
 
     - name: Restore dependencies
       run: dotnet restore 
@@ -42,7 +43,7 @@ jobs:
     #  run: dotnet build --configuration Release --no-restore -p:Version=${{env.GitBuildVersion}}
 
     - name: Pack
-      run: dotnet pack -c Release --no-restore -p:Version=${{env.GitBuildVersion}} -p:PackageVersion=${{env.NBGV_NuGetPackageVersion}}
+      run: dotnet pack -c Release --no-restore -p:Version=${{env.NBGV_Version}} -p:PackageVersion=${{env.NBGV_NuGetPackageVersion}}
 
     - name: Create Release
       uses: actions/create-release@v1.1.4
