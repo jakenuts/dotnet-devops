@@ -43,7 +43,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.nbgv.outputs.SemVer2 }}
 
     - name: Pack
-      run: dotnet pack -c Release --no-build --no-restore -p:Version=${{ steps.nbgv.outputs.SemVer2 }} -p:PackageVersion=${{env.NBGV_NuGetPackageVersion}}
+      run: dotnet pack -c Release --no-build --no-restore -p:PackageVersion=${{ steps.nbgv.outputs.NuGetPackageVersion }}
 
     - name: Create Release
       uses: actions/create-release@v1.1.4
