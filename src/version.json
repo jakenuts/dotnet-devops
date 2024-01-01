@@ -1,0 +1,8 @@
+{
+  "version": "1.2",
+  "release": {
+    "branchName": "release/v{version}",
+    "versionIncrement": "minor",
+    "firstUnstableTag": "alpha"
+  }
+}
