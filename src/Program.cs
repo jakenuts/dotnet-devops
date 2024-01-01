@@ -15,11 +15,9 @@ using Spectre.Console.Cli;
 
 Console.OutputEncoding = Encoding.Default;
 
-Console.OutputEncoding = Encoding.Default;
-
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddSingleton<IHostLifetime, ConsoleLifetime>();
+
 
 #region ⚙️ Configuration
 
@@ -33,14 +31,14 @@ builder.Logging.AddSimpleConsole(opts => { opts.TimestampFormat = "yyyy-MM-dd HH
 
 builder.Logging.AddFilter((cat, level) =>
 {
+#if DEBUG
+    return level > LogLevel.Trace;
+#else
     if (cat?.StartsWith("Microsoft") == true)
     {
         return level > LogLevel.Information;
     }
 
-#if DEBUG
-    return level > LogLevel.Debug;
-#else
     return level > LogLevel.Debug;
 #endif
 });
@@ -80,6 +78,14 @@ builder.UseSpectreConsole(config =>
 
 #endregion
 
+#region Stopping on Ctrl-C
+//builder.Services.AddSingleton<IHostLifetime, ConsoleLifetime>();
+builder.Services.Configure<HostOptions>(opts =>
+{
+    opts.ShutdownTimeout = TimeSpan.FromSeconds(1);
+});
+#endregion
+
 var app = builder.Build();
 
 run:
@@ -96,6 +102,7 @@ if (Environment.ExitCode == Constants.UnauthorizedExitCode)
 #if DEBUG
 if (Debugger.IsAttached)
 {
+    await app.StopAsync(TimeSpan.FromSeconds(10));
     AnsiConsole.Ask<string>("Hit <Enter> to exit");
 }
 #endif
