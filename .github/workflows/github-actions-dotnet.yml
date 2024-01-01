@@ -19,10 +19,10 @@ jobs:
         working-directory: src/
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # Avoid shallow clone for Nerdbank.GitVersioning
-        filter: tree:0      
+        # Avoid shallow clone for Nerdbank.GitVersioning
+        fetch-depth: 0    
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
