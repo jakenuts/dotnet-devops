@@ -1,8 +1,13 @@
 {
   "version": "1.2",
   "release": {
-    "branchName": "release/v{version}",
+    "tagName": "v{version}",
+    "branchName": "v{version}",
     "versionIncrement": "minor",
     "firstUnstableTag": "alpha"
-  }
+  },
+  "publicReleaseRefSpec": [
+    "^refs/heads/main", // we release out of master
+    "^refs/tags/v\\d+\\.\\d+" // we also release tags starting with vN.N
+  ]
 }
