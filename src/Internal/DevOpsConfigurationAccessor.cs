@@ -2,23 +2,14 @@
 
 namespace devops.Internal;
 
-public class DevOpsConfigurationAccessor
+public class DevOpsConfigurationAccessor(IOptionsSnapshot<DevOpsConfiguration> settings)
 {
-    private readonly IOptionsSnapshot<DevOpsConfiguration> _settings;
+    private static DevOpsConfiguration? _overrideSettings;
 
-    private static DevOpsConfiguration? _overrideSettings = null;
+    public DevOpsConfiguration GetSettings() => _overrideSettings ?? settings.Value;
 
-    public DevOpsConfiguration GetSettings() => _overrideSettings ?? _settings.Value;
-
-    public void OverrideSettings(DevOpsConfiguration settings)
+    public void UpdateSettings(DevOpsConfiguration updatedSettings)
     {
-        _overrideSettings = settings;
+        _overrideSettings = updatedSettings;
     }
-
-    public DevOpsConfigurationAccessor(IOptionsSnapshot<DevOpsConfiguration> settings)
-    {
-        _settings = settings;
-    }
-
-
 }

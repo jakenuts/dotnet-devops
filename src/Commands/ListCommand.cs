@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel;
 using devops.Internal;
-using Microsoft.Extensions.Options;
 using Microsoft.TeamFoundation.Build.WebApi;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Spectre.Console;
@@ -9,13 +8,9 @@ using Spectre.Console.Cli;
 
 namespace devops.Commands;
 
-public class ListCommand : AuthorizedCommandBase<ListCommand.Settings>
+public class ListCommand(IAnsiConsole console, DevOpsConfigurationAccessor devoptions)
+    : AuthorizedCommandBase<ListCommand.Settings>(console, devoptions)
 {
-    public ListCommand(IAnsiConsole console, DevOpsConfigurationAccessor devoptions) : base(console, devoptions)
-    {
-
-    }
-
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         var authResult = await base.ExecuteAsync(context, settings);
@@ -32,14 +27,9 @@ public class ListCommand : AuthorizedCommandBase<ListCommand.Settings>
 
         var data = new ConcurrentDictionary<TeamProjectReference, List<string[]>>();
 
-        await _console.Progress()
+        await Console.Progress()
             .HideCompleted(false)
-            .Columns(new ProgressColumn[]
-            {
-                new TaskDescriptionColumn(), // Task description
-                new ProgressBarColumn(), // Progress bar
-                new SpinnerColumn() // Spinner
-            })
+            .Columns(new TaskDescriptionColumn(), new ProgressBarColumn(), new SpinnerColumn())
             .StartAsync(async ctx =>
             {
                 var task1 = ctx.AddTask("[green] Checking projects..[/]", true, projects.Count);
@@ -91,9 +81,33 @@ public class ListCommand : AuthorizedCommandBase<ListCommand.Settings>
         }
 
         // Render the table to the console
-        _console.Write(table);
+        Console.Write(table);
 
         return 0;
+    }
+
+    private static string GetBuildResultEmoji(BuildResult? result)
+    {
+        if (result == null)
+        {
+            return "🏃";
+        }
+
+        switch (result.Value)
+        {
+            case BuildResult.None:
+                return "❔";
+            case BuildResult.Succeeded:
+                return "✅"; //"✔";
+            case BuildResult.PartiallySucceeded:
+                return "⚠";
+            case BuildResult.Failed:
+                return "⛔";
+            case BuildResult.Canceled:
+                return "🛑";
+        }
+
+        return "❔";
     }
 
     private static List<string[]> GetBuildRows(Settings settings, List<Build> builds)
@@ -142,30 +156,6 @@ public class ListCommand : AuthorizedCommandBase<ListCommand.Settings>
         }
 
         return rows;
-    }
-
-    private static string GetBuildResultEmoji(BuildResult? result)
-    {
-        if (result == null)
-        {
-            return "🏃";
-        }
-
-        switch (result.Value)
-        {
-            case BuildResult.None:
-                return "❔";
-            case BuildResult.Succeeded:
-                return "✅"; //"✔";
-            case BuildResult.PartiallySucceeded:
-                return "⚠";
-            case BuildResult.Failed:
-                return "⛔";
-            case BuildResult.Canceled:
-                return "🛑";
-        }
-
-        return "❔";
     }
 
     public class Settings : CommandSettings

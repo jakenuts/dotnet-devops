@@ -7,25 +7,19 @@ using Spectre.Console.Cli;
 
 namespace devops.Commands;
 
-public abstract class AuthorizedCommandBase<TSettings> : AsyncCommand<TSettings> where TSettings : CommandSettings
+public abstract class AuthorizedCommandBase<TSettings>(IAnsiConsole console, DevOpsConfigurationAccessor devoptions)
+    : AsyncCommand<TSettings>
+    where TSettings : CommandSettings
 {
-    protected readonly IAnsiConsole _console;
-
-    private readonly DevOpsConfigurationAccessor _devoptionsAccessor;
+    protected readonly IAnsiConsole Console = console;
 
     protected VssConnection? VssConnection;
-
-    protected AuthorizedCommandBase(IAnsiConsole console, DevOpsConfigurationAccessor devoptions)
-    {
-        _console = console;
-        _devoptionsAccessor = devoptions;
-    }
 
     public override async Task<int> ExecuteAsync(CommandContext context, TSettings settings)
     {
         try
         {
-            var config = _devoptionsAccessor.GetSettings();
+            var config = devoptions.GetSettings();
 
             var devopsUri = new Uri(config.CollectionUri);
             var deopsCreds = new VssBasicCredential(string.Empty, config.CollectionPAT);
@@ -35,7 +29,7 @@ public abstract class AuthorizedCommandBase<TSettings> : AsyncCommand<TSettings>
         }
         catch (OptionsValidationException ex)
         {
-            _console.WriteLine("Could not connect to Azure Devops - " + ex.Message);
+            Console.WriteLine("Could not connect to Azure Devops - " + ex.Message);
             return Constants.UnauthorizedExitCode;
         }
 

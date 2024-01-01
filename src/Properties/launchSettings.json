@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "DotnetDevops": {
+      "commandName": "Project",
+      "commandLineArgs": "watch"
+    },
+    "Interactive": {
+      "commandName": "Executable",
+      "executablePath": "pwsh.exe",
+      "commandLineArgs": "-NoExit -c \"Set-Alias -Name devops -Value \"$(TargetDir)$(AssemblyName).exe\"",
+      "workingDirectory": "$(ProjectDir)"
+    }
+  }
+}

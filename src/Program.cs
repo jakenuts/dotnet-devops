@@ -1,98 +1,103 @@
 ﻿using System.Diagnostics;
-using System.Reflection;
 using System.Text;
+using Community.Extensions.Spectre.Cli.Hosting;
 using devops.Commands;
 using devops.Internal;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Spectre.Cli.Extensions.DependencyInjection;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 Console.OutputEncoding = Encoding.Default;
 
-#region Configuration
+Console.OutputEncoding = Encoding.Default;
 
-var configuration = new ConfigurationBuilder()
-    .AddJsonFile(Constants.SettingsPath, true, true)
-    .AddCommandLine(args)
-    .AddEnvironmentVariables()
-    .Build();
+var builder = Host.CreateApplicationBuilder(args);
 
+builder.Services.AddSingleton<IHostLifetime, ConsoleLifetime>();
+
+#region ⚙️ Configuration
+
+builder.Configuration.AddJsonFile(Constants.SettingsPath, true, true);
 
 #endregion
 
-#region Services
+#region 📰 Logging
 
-var services = new ServiceCollection();
-services.AddDataProtection().SetApplicationName(Constants.SettingsAppName).DisableAutomaticKeyGeneration();
-services.AddSingleton<IConfiguration>(configuration);
-services.Configure<DevOpsConfiguration>(configuration.GetSection("DevOps"));
-services.AddTransient<DevOpsConfigurationProtector>();
-services.ConfigureOptions<DevOpsConfigurationProtector>();
-services.AddTransient<IValidateOptions<DevOpsConfiguration>, DevOpsConfigurationValidation>();
-services.AddSingleton<DevOpsConfigurationAccessor>();
-#endregion
+builder.Logging.AddSimpleConsole(opts => { opts.TimestampFormat = "yyyy-MM-dd HH:mm:ss "; });
 
-#region Logging
-
-services.AddLogging(logging =>
+builder.Logging.AddFilter((cat, level) =>
 {
-    logging.AddFilter((cat, level) =>
+    if (cat?.StartsWith("Microsoft") == true)
     {
-        if (cat.StartsWith("Microsoft"))
-        {
-            return level > LogLevel.Information;
-        }
+        return level > LogLevel.Information;
+    }
 
-        return level > LogLevel.Trace;
-    });
-
-    logging.AddSimpleConsole(opts => { opts.TimestampFormat = "yyyy-MM-dd HH:mm:ss "; });
+#if DEBUG
+    return level > LogLevel.Debug;
+#else
+    return level > LogLevel.Debug;
+#endif
 });
 
 #endregion
 
-if (args.Length == 0)
-{
-    args = new[] { "watch" };
-}
+#region 🎾 Services
 
-var registrar = new DependencyInjectionRegistrar(services);
-var app = new CommandApp(registrar);
+builder.Services.AddDataProtection()
+    .SetApplicationName(Constants.SettingsAppName)
+    .DisableAutomaticKeyGeneration();
 
-app.Configure(config =>
+builder.Services.Configure<DevOpsConfiguration>(builder.Configuration.GetSection("DevOps"));
+builder.Services.AddTransient<DevOpsConfigurationProtector>();
+builder.Services.AddTransient<DevOpsConfigurationStore>();
+builder.Services.ConfigureOptions<DevOpsConfigurationProtector>();
+builder.Services.AddTransient<IValidateOptions<DevOpsConfiguration>, DevOpsConfigurationValidation>();
+builder.Services.AddTransient<DevOpsConfigurationAccessor>();
+
+#endregion
+
+#region 🐶 Commands
+
+builder.Services.AddCommand<InitCommand>("init");
+builder.Services.AddCommand<ListCommand>("list");
+builder.Services.AddCommand<WatchCommand>("watch");
+
+builder.UseSpectreConsole(config =>
 {
 #if DEBUG
     config.PropagateExceptions();
     config.ValidateExamples();
 #endif
-    config.AddCommand<InitCommand>("init");
-    config.AddCommand<ListCommand>("list");
-    config.AddCommand<WatchCommand>("watch");
+    config.SetApplicationName(Constants.AppName);
+    config.UseBasicExceptionHandler();
 });
+
+#endregion
+
+var app = builder.Build();
 
 run:
 
-var exitCode = await app.RunAsync(args);
+await app.RunAsync();
 
-if (exitCode == Constants.UnauthorizedExitCode)
+if (Environment.ExitCode == Constants.UnauthorizedExitCode)
 {
-    var initCode = await app.RunAsync(new[] { "init" });
-
+    var cmdApp = app.Services.GetRequiredService<ICommandApp>();
+    Environment.ExitCode = await cmdApp.RunAsync(new[] { "init" });
     goto run;
-
-    //Console.WriteLine("Please run 'devops' again to use the new DevOps settings.");
 }
 
 #if DEBUG
 if (Debugger.IsAttached)
 {
-    Console.WriteLine("Hit any key to exit");
-    Console.ReadKey();
+    AnsiConsole.Ask<string>("Hit <Enter> to exit");
 }
 #endif
 
-return exitCode;
+return Environment.ExitCode;

@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel;
 using devops.Internal;
-using Microsoft.Extensions.Options;
 using Microsoft.TeamFoundation.Build.WebApi;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.VisualStudio.Services.ReleaseManagement.WebApi;
@@ -11,19 +10,14 @@ using Spectre.Console.Cli;
 
 namespace devops.Commands;
 
-public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
+public class WatchCommand(IAnsiConsole console, DevOpsConfigurationAccessor devoptions)
+    : AuthorizedCommandBase<WatchCommand.Settings>(console, devoptions)
 {
-
     private BuildHttpClient? _buildClient;
 
     private ProjectHttpClient? _projectClient;
 
     private ReleaseHttpClient2? _releaseClient;
-
-    public WatchCommand(IAnsiConsole console, DevOpsConfigurationAccessor devoptions) : base(console, devoptions)
-    {
-
-    }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
@@ -45,14 +39,9 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
             var buildsByProject = new ConcurrentDictionary<TeamProjectReference, List<Build>>();
             var releasesByProject = new ConcurrentDictionary<TeamProjectReference, List<Release>>();
 
-            await _console.Progress()
+            await Console.Progress()
                 .HideCompleted(false)
-                .Columns(new ProgressColumn[]
-                {
-                    new TaskDescriptionColumn(), // Task description
-                    new ProgressBarColumn(), // Progress bar
-                    new SpinnerColumn() // Spinner
-                })
+                .Columns(new TaskDescriptionColumn(), new ProgressBarColumn(), new SpinnerColumn())
                 .StartAsync(async ctx =>
                 {
                     var task1 = ctx.AddTask("[green] Checking projects for active builds..[/]", true, projects.Count);
@@ -78,10 +67,9 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
                                 maxBuildsPerDefinition: 1,
                                 cancellationToken: token);
 
-                            builds = builds.Where(d => d.Status == BuildStatus.InProgress || d.Status == BuildStatus.NotStarted)
-                                .ToList();
+                            var activeBuilds = builds.Where(IsActiveOrPending).ToList();
 
-                            if (builds.Any())
+                            if (activeBuilds.Any())
                             {
                                 buildsByProject[project] = builds;
                             }
@@ -100,8 +88,9 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
 
                         if (settings.Continuous == true && buildsByProject.IsEmpty && releasesByProject.IsEmpty)
                         {
-                            Thread.Sleep(5000);
                             task1.Value = 0;
+
+                            await Task.Delay(5000);
                         }
                         else
                         {
@@ -112,7 +101,7 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
 
             if (buildsByProject.IsEmpty && releasesByProject.IsEmpty)
             {
-                _console.WriteLine("All builds & releases complete!");
+                Console.WriteLine("All builds & releases complete!");
                 return 0;
             }
 
@@ -149,7 +138,7 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
                 }
             }
 
-            await _console.Live(table)
+            await Console.Live(table)
                 .StartAsync(async ctx =>
                 {
                     while (true)
@@ -171,19 +160,22 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
                             entry.Value.Status != BuildStatus.InProgress
                             && entry.Value.Status != BuildStatus.NotStarted).ToArray();
 
+                        /*
                         foreach (var f in finished)
                         {
                             buildRows.Remove(f.Key, out var _);
-
                             Console.Beep();
-                        }
+                        }*/
 
-                        if (buildRows.IsEmpty)
+                        var activeBuilds = buildRows.Any(entry => IsActiveOrPending(entry.Value) ||
+                                                                  entry.Value.FinishTime > DateTime.UtcNow.AddMinutes(-1));
+
+                        if (activeBuilds == false)
                         {
                             return 0;
                         }
 
-                        Thread.Sleep(1000);
+                        await Task.Delay(1000);
                     }
                 });
 
@@ -192,45 +184,10 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
                 break;
             }
 
-            Thread.Sleep(5000);
+            await Task.Delay(5000);
         }
 
         return 0;
-    }
-
-    private async Task UpdateBuildStatus(ICollection<Build> builds)
-    {
-        if (_buildClient == null)
-        {
-            return;
-        }
-
-        await Parallel.ForEachAsync(builds, CancellationToken.None, async (build, token) =>
-        {
-            var updatedBuild = await _buildClient.GetBuildAsync(
-                build.Project.Id, build.Id,
-
-                //propertyFilters:
-                cancellationToken: token);
-
-            build.Status = updatedBuild.Status;
-            build.FinishTime = updatedBuild.FinishTime;
-        });
-    }
-
-    private static List<string> GetBuildRow(Settings settings, Build build)
-    {
-        var row = new List<string>();
-
-        row.AddRange(new[]
-        {
-            GetBuildResultEmoji(build.Result) + " " + build.Definition.Name,
-            build.BuildNumber,
-            build.Status?.ToString() ?? " ",
-            build.FinishTime?.ToString() ?? ""
-        });
-
-        return row;
     }
 
     private static string GetBuildResultEmoji(BuildResult? result)
@@ -257,9 +214,92 @@ public class WatchCommand : AuthorizedCommandBase<WatchCommand.Settings>
         return "❔";
     }
 
+    private static List<string> GetBuildRow(Settings settings, Build build)
+    {
+        var row = new List<string>();
+
+        row.AddRange(new[]
+        {
+            GetBuildResultEmoji(build.Result) + " " + build.Definition.Name,
+            build.BuildNumber,
+            GetBuildStatusText(build.Status, build.Result),
+            build.FinishTime?.ToString() ?? ""
+        });
+
+        return row;
+    }
+
+    private static string GetBuildStatusText(BuildStatus? status, BuildResult? result)
+    {
+        return result switch
+        {
+            BuildResult.Failed => "Failed",
+            BuildResult.Canceled => "Cancelled",
+            _ => status?.ToString() ?? ""
+        };
+    }
+
+    protected bool IsActiveOrPending(Build build) => build.Status == BuildStatus.InProgress ||
+                                                     build.Status == BuildStatus.NotStarted &&
+                                                     build.QueueTime >= DateTime.UtcNow.AddMinutes(-10);
+
+    private static void MakeSound(BuildResult? result)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            System.Console.Beep();
+            return;
+        }
+
+        switch (result)
+        {
+            case BuildResult.Succeeded:
+                System.Console.Beep(800, 200);
+                break;
+            case BuildResult.PartiallySucceeded:
+                System.Console.Beep();
+                break;
+            case BuildResult.Failed:
+                System.Console.Beep(240, 200);
+                break;
+            case BuildResult.Canceled:
+                System.Console.Beep(300, 200);
+                break;
+        }
+    }
+
+    private async Task UpdateBuildStatus(ICollection<Build> builds)
+    {
+        if (_buildClient == null)
+        {
+            return;
+        }
+
+        await Parallel.ForEachAsync(builds, CancellationToken.None, async (build, token) =>
+        {
+            var updatedBuild = await _buildClient.GetBuildAsync(
+                build.Project.Id, build.Id,
+
+                //propertyFilters:
+                cancellationToken: token);
+
+            // Status Changed
+            if (build.Status == BuildStatus.InProgress && updatedBuild.Status != BuildStatus.InProgress)
+            {
+                MakeSound(updatedBuild.Result);
+            }
+
+            build.BuildNumber = updatedBuild.BuildNumber;
+            build.Status = updatedBuild.Status;
+            build.Result = updatedBuild.Result;
+            build.FinishTime = updatedBuild.FinishTime;
+        });
+    }
+
     public class Settings : CommandSettings
     {
-        [CommandOption("-p|--project")] public string? Project { get; set; }
+        [CommandOption("-p|--project")]
+        public string? Project { get; set; }
 
         [CommandOption("-c|--continuous")]
         [DefaultValue(true)]
