@@ -23,7 +23,6 @@ Example Url: 'https://mycompany.visualstudio.com/defaultcollection'
 - `devops list -f` - lists failed builds
 - `devops watch`   - polls for new builds and shows progress
 
-
  [^1]: The PAT is stored unencrypted in the .dotnet-devops folder created in your user profile directory. No idea how to do this better
 
 
